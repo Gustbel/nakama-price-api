@@ -1,40 +1,39 @@
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Load whitelist address list from JSON file
+const whitelist = JSON.parse(fs.readFileSync('whitelist.json', 'utf8'));
 
 app.get('/simple/token_price/:network', async (req, res) => {
   const network = req.params.network;
   const contractAddresses = req.query.contract_addresses.split(',');
-  const vsCurrencies = req.query.vs_currencies;
 
-  // Here, you can implement the logic to fetch token prices
-  // and construct the JSON response similar to CoinGecko
-  /*
-  const response = {};
-  for (const address of contractAddresses) {
-    response[address] = {
-      [vsCurrencies]: 1952.74 // This is just an example; you should calculate the actual value
-    };
-  }
-  res.json(response);
-  */
-
-  // BYPASS TO COINGECKO
   let response = {};
-  try {
-    const coinGeckoUrl = `https://api.coingecko.com/api/v3/simple/token_price/${network}?contract_addresses=${contractAddresses}&vs_currencies=${vsCurrencies}`
-    const coinGeckoResponse = await axios.get(coinGeckoUrl);
-    response = coinGeckoResponse.data;
-  } catch (error) {
-    response = { error: 'Error fetching data' }
+  for (const address of contractAddresses) {
+    if (!whitelist.includes(address)) {
+      // If is not in the whitelist get price from Coingecko
+      try {
+        const coinGeckoUrl = `https://api.coingecko.com/api/v3/simple/token_price/${network}?contract_addresses=${address}&vs_currencies=usd`;
+        const coinGeckoResponse = await axios.get(coinGeckoUrl);
+        response[address] = coinGeckoResponse.data[address];
+      } catch (error) {
+        console.log(error)
+      }
+    } else {
+      // If the address is in the whitelist here will be define the price of this asset
+      response[address] = {
+        "usd": 1.023   // TODO: Put logic here
+      };
+    }
   }
   res.json(response);
 });
 
 app.get('/coins/contract/:address/market_chart/range', async (req, res) => {
   const contractAddress = req.params.address;
-  const vsCurrency = req.query.vs_currency;
   const from = req.query.from;
   const to = req.query.to;
 
@@ -64,7 +63,7 @@ app.get('/coins/contract/:address/market_chart/range', async (req, res) => {
   // BYPASS TO COINGECKO
   let response = {};
   try {
-    const coinGeckoUrl = `https://api.coingecko.com/api/v3/coins/ethereum/contract/${contractAddress}/market_chart/range?vs_currency=${vsCurrency}&from=${from}&to=${to}`;
+    const coinGeckoUrl = `https://api.coingecko.com/api/v3/coins/ethereum/contract/${contractAddress}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`;
     const coinGeckoResponse = await axios.get(coinGeckoUrl);
     response = coinGeckoResponse.data;
   } catch (error) {
