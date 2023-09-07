@@ -1,5 +1,5 @@
-# Use an official Node.js base image with version 16.15.1
-FROM node:16.15.1
+# Use an official Node.js base image with LTS version 18.17.1-alpine3.18
+FROM node:18.17.1-alpine3.18
 
 # Set the working directory to the application folder
 WORKDIR /usr/src/app
