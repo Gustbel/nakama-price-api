@@ -34,40 +34,36 @@ app.get('/simple/token_price/:network', async (req, res) => {
 
 app.get('/coins/contract/:address/market_chart/range', async (req, res) => {
   const contractAddress = req.params.address;
-  const from = req.query.from;
-  const to = req.query.to;
+  const fromTimestamp = req.query.from;
+  const toTimestamp = req.query.to;
 
-  // Here, you can implement the logic to fetch token prices
-  // and construct the JSON response similar to CoinGecko
-  /*
-  const responseData = {
-    prices: [
-      [1693854122128, 1855.727988281606],
-      [1693854370419, 1853.0540327201713],
-      [1693854701571, 1853.791320764839]
-    ],
-    market_caps: [
-      [1693854122128, 0.0],
-      [1693854370419, 0.0],
-      [1693854701571, 0.0]
-    ],
-    total_volumes: [
-      [1693854122128, 31512018.50055088],
-      [1693854370419, 31455834.45837046],
-      [1693854701571, 31467919.52530859]
-    ]
-  };
-  res.json(responseData);
-  */
-
-  // BYPASS TO COINGECKO
   let response = {};
-  try {
-    const coinGeckoUrl = `https://api.coingecko.com/api/v3/coins/ethereum/contract/${contractAddress}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`;
-    const coinGeckoResponse = await axios.get(coinGeckoUrl);
-    response = coinGeckoResponse.data;
-  } catch (error) {
-    response = { error: 'Error fetching data' }
+  if (!whitelist.includes(contractAddress)) {
+    try {
+      // If is not in the whitelist get price from Coingecko
+      const coinGeckoUrl = `https://api.coingecko.com/api/v3/coins/ethereum/contract/${contractAddress}/market_chart/range?vs_currency=usd&from=${fromTimestamp}&to=${toTimestamp}`;
+      const coinGeckoResponse = await axios.get(coinGeckoUrl);
+      response = coinGeckoResponse.data;
+    } catch (error) {
+      response = { error: 'Error fetching data' }
+    }
+  } else {
+    // If the address is in the whitelist here will be define the price of this asset
+    response = {
+      prices: [],
+      market_caps: [],
+      total_volumes: []
+    };
+
+    let pivot = Number(fromTimestamp)
+    while (pivot < Number(toTimestamp)) {
+      response.prices.push([pivot * 1000, 1.02]);
+      response.market_caps.push([pivot * 1000, 50_000.0]);
+      response.total_volumes.push([pivot * 1000, 50_000.0]);
+
+      // update pivot
+      pivot += 3_600    // 3_600 is 1 hour in sec
+    }
   }
   res.json(response);
 });
