@@ -3,21 +3,11 @@ const axios = require('axios');
 const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
-const { getVusdPrice } = require('./scripts/fetcherPrices/onChain/vusdPriceFetcher.js');
+const { getWhitelistPrice } = require('./scripts/fetcherPrices/whitelistPrices.js');
 
 
 // Load whitelist address list from JSON file
 const whitelist = JSON.parse(fs.readFileSync('whitelist.json', 'utf8'));
-
-// TODO: This is ONLY FOR DEV PURPOUSES - Setting prices of the whitelist
-const whitelistPrices = [
-          0.05,             // wSMR
-          getVusdPrice(),   // vUSD
-          0.10,             // DEEPR
-          0.17              // wIOTA
-]
-whitelistPrices.push(...Array(Math.max(0, whitelist.length - whitelistPrices.length)).fill(0.0)); // This line prevents there from being more addresses than prices
-
 
 app.get('/simple/token_price/:network', async (req, res) => {
   const network = req.params.network;
@@ -38,7 +28,7 @@ app.get('/simple/token_price/:network', async (req, res) => {
       // If the address is in the whitelist here will be define the price of this asset
       const whitelistAddressIndex = whitelist.indexOf(address)
       response[address] = {
-        "usd": whitelistPrices[whitelistAddressIndex]   // TODO: Put logic here
+        "usd": await getWhitelistPrice(whitelistAddressIndex)   // TODO: Put logic here
       };
     }
   }
@@ -69,11 +59,13 @@ app.get('/coins/contract/:address/market_chart/range', async (req, res) => {
       total_volumes: []
     };
 
+    const price = await getWhitelistPrice(whitelistAddressIndex)
+
     let pivot = Number(fromTimestamp)
     while (pivot < Number(toTimestamp)) {
-      response.prices.push([pivot * 1000, whitelistPrices[whitelistAddressIndex]]);
-      response.market_caps.push([pivot * 1000, whitelistPrices[whitelistAddressIndex] * 50_000]);
-      response.total_volumes.push([pivot * 1000, whitelistPrices[whitelistAddressIndex] * 5_000]);
+      response.prices.push([pivot * 1000, price]);
+      response.market_caps.push([pivot * 1000, price * 50_000]);
+      response.total_volumes.push([pivot * 1000, price * 5_000]);
 
       // update pivot
       pivot += 3_600    // 3_600 is 1 hour in sec

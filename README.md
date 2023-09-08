@@ -1,1 +1,1 @@
-# shimmerPriceApi
+# nakama-price-api
