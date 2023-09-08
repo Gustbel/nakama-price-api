@@ -3,16 +3,18 @@ const axios = require('axios');
 const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { getVusdPrice } = require('./scripts/fetcherPrices/onChain/vusdPriceFetcher.js');
+
 
 // Load whitelist address list from JSON file
 const whitelist = JSON.parse(fs.readFileSync('whitelist.json', 'utf8'));
 
 // TODO: This is ONLY FOR DEV PURPOUSES - Setting prices of the whitelist
 const whitelistPrices = [
-          0.05,   // wSMR
-          1.02,   // vUSD
-          0.10,   // DEEPR
-          0.17    // wIOTA
+          0.05,             // wSMR
+          getVusdPrice(),   // vUSD
+          0.10,             // DEEPR
+          0.17              // wIOTA
 ]
 whitelistPrices.push(...Array(Math.max(0, whitelist.length - whitelistPrices.length)).fill(0.0)); // This line prevents there from being more addresses than prices
 
